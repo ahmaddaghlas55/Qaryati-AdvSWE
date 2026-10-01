@@ -1,0 +1,6 @@
+{
+  "spec_dir": "src",
+  "spec_files": ["**/*.spec.ts"],
+  "requires": ["ts-node/register"],
+  "random": true
+}

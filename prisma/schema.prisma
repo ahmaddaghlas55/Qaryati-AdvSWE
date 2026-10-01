@@ -1,0 +1,68 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model AppUser {
+  id            BigInt         @id @default(autoincrement())
+  email         String         @unique
+  passwordHash   String         @map("password_hash")
+  role          String         @default("contributor")
+  isActive      Boolean        @default(true) @map("is_active")
+  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  refreshTokens RefreshToken[]
+  auditLogs     AuditLog[]
+  @@map("app_users")
+}
+
+model RefreshToken {
+  id         BigInt    @id @default(autoincrement())
+  userId     BigInt    @map("user_id")
+  tokenHash  String    @map("token_hash")
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz(6)
+  revokedAt  DateTime? @map("revoked_at") @db.Timestamptz(6)
+  replacedBy BigInt?   @map("replaced_by")
+  user       AppUser   @relation(fields: [userId], references: [id])
+  @@map("refresh_tokens")
+}
+
+model Governorate {
+  id   BigInt @id @default(autoincrement())
+  slug String @unique
+  nameAr String @map("name_ar")
+  nameEn String @map("name_en")
+  @@map("governorates")
+}
+
+model Source {
+  id              BigInt   @id @default(autoincrement())
+  title           String
+  author          String?
+  publisher       String?
+  url             String?
+  publicationYear Int?     @map("publication_year")
+  type            String
+  createdBy       BigInt   @map("created_by")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  @@map("sources")
+}
+
+model AuditLog {
+  id          BigInt    @id @default(autoincrement())
+  occurredAt  DateTime  @default(now()) @map("occurred_at") @db.Timestamptz(6)
+  actorId     BigInt?   @map("actor_id")
+  requestId   String?   @map("request_id")
+  entityType  String    @map("entity_type")
+  entityId    BigInt    @map("entity_id")
+  action      String
+  oldValue    Json?     @map("old_value")
+  newValue    Json?     @map("new_value")
+  actor       AppUser?  @relation(fields: [actorId], references: [id])
+  @@index([entityType, entityId], map: "audit_entity_idx")
+  @@index([actorId, occurredAt(sort: Desc)], map: "audit_actor_idx")
+  @@map("audit_log")
+}

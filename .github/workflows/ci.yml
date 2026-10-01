@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: qaryati
+          POSTGRES_PASSWORD: change_me
+          POSTGRES_DB: qaryati
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U qaryati -d qaryati"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+        env:
+          DATABASE_URL: postgresql://qaryati:change_me@localhost:5432/qaryati
+          JWT_SECRET: ci_secret_that_is_at_least_32_characters_long
+          CORS_ORIGINS: http://localhost:3000
+          LOG_LEVEL: info
+          GEOCODING_BASE_URL: https://nominatim.openstreetmap.org
+          GEOCODING_USER_AGENT: qaryati-ci
+          ADMIN_BOOTSTRAP_EMAIL: admin@example.com
+          ADMIN_BOOTSTRAP_PASSWORD: change_me
+          DB_PASSWORD: change_me
+          RATE_LIMIT_WINDOW_MS: 60000
+          RATE_LIMIT_MAX: 100
+          AUTH_RATE_LIMIT_MAX: 10
+          GEOCODING_TIMEOUT_MS: 4000
+          CACHE_TTL_SECONDS: 300
+      - run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: postgresql://qaryati:change_me@localhost:5432/qaryati
+      - run: npm test
+      - run: npm audit --audit-level=high
