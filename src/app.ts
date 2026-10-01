@@ -6,6 +6,7 @@ import { container } from './container';
 import { errorHandler } from './shared/http/error-handler';
 import { notFoundHandler } from './shared/http/not-found-handler';
 import { requestIdMiddleware } from './shared/http/request-id.middleware';
+import { createGovernorateRouter } from './modules/governorates/governorates.routes';
 
 export function createApp() {
   const app = express();
@@ -23,7 +24,11 @@ export function createApp() {
       next(error);
     }
   });
-
+  
+  app.use('/api/v1/governorates', createGovernorateRouter(container.governorateController));
+  
+  
+  // Error handling middleware should be the last middleware added
   app.use(notFoundHandler);
   app.use(errorHandler);
   return app;
