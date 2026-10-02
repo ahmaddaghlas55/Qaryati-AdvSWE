@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 
 import { GovernorateService } from './governorates.service';
-
+//return response with data
 export class GovernorateController {
   constructor(private readonly service: GovernorateService) {}
 
