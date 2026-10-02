@@ -16,6 +16,11 @@ model AppUser {
   createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
   refreshTokens RefreshToken[]
   auditLogs     AuditLog[]
+  villagesCreated Village[] @relation("VillageCreatedBy")
+  villagesReviewed Village[] @relation("VillageReviewedBy")
+  villageNamesCreated VillageName[] @relation("VillageNameCreatedBy")
+  villageNamesReviewed VillageName[] @relation("VillageNameReviewedBy")
+  sourcesCreated Source[] @relation("SourceCreatedBy")
   @@map("app_users")
 }
 
@@ -35,7 +40,73 @@ model Governorate {
   slug String @unique
   nameAr String @map("name_ar")
   nameEn String @map("name_en")
+  villages Village[]
   @@map("governorates")
+}
+
+model Village {
+  id            BigInt    @id @default(autoincrement())
+  slug          String    @unique
+  governorateId BigInt    @map("governorate_id")
+  municipality  String?
+  overview      String?   @db.Text
+  elevationM    Decimal?  @map("elevation_m") @db.Decimal(8, 2)
+  areaKm2       Decimal?  @map("area_km2") @db.Decimal(10, 3)
+  status        String    @default("proposed")
+  supersedesId  BigInt?   @map("supersedes_id")
+  sourceId      BigInt?   @map("source_id")
+  createdBy     BigInt    @map("created_by")
+  reviewedBy    BigInt?   @map("reviewed_by")
+  reviewedAt    DateTime? @map("reviewed_at") @db.Timestamptz(6)
+  reviewNote    String?   @map("review_note") @db.Text
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt     DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  governorate   Governorate @relation(fields: [governorateId], references: [id])
+  supersedes    Village?    @relation("VillageSupersession", fields: [supersedesId], references: [id])
+  supersededBy  Village[]   @relation("VillageSupersession")
+  source        Source?     @relation(fields: [sourceId], references: [id])
+  creator       AppUser     @relation("VillageCreatedBy", fields: [createdBy], references: [id])
+  reviewer      AppUser?     @relation("VillageReviewedBy", fields: [reviewedBy], references: [id])
+  names         VillageName[]
+
+  @@index([governorateId])
+  @@index([status])
+  @@map("villages")
+}
+
+model VillageName {
+  id              BigInt    @id @default(autoincrement())
+  villageId       BigInt    @map("village_id")
+  value           String
+  valueNormalized String?   @map("value_normalized")
+  language        String
+  type            String
+  isCurrent       Boolean   @default(false) @map("is_current")
+  validFrom       String?   @map("valid_from")
+  validTo         String?   @map("valid_to")
+  meaningOrOrigin String?   @map("meaning_or_origin") @db.Text
+  status          String    @default("proposed")
+  supersedesId    BigInt?   @map("supersedes_id")
+  sourceId        BigInt?   @map("source_id")
+  createdBy       BigInt    @map("created_by")
+  reviewedBy      BigInt?   @map("reviewed_by")
+  reviewedAt      DateTime? @map("reviewed_at") @db.Timestamptz(6)
+  reviewNote      String?   @map("review_note") @db.Text
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt       DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  village      Village    @relation(fields: [villageId], references: [id])
+  supersedes   VillageName? @relation("VillageNameSupersession", fields: [supersedesId], references: [id])
+  supersededBy VillageName[] @relation("VillageNameSupersession")
+  source       Source?    @relation(fields: [sourceId], references: [id])
+  creator      AppUser    @relation("VillageNameCreatedBy", fields: [createdBy], references: [id])
+  reviewer     AppUser?   @relation("VillageNameReviewedBy", fields: [reviewedBy], references: [id])
+
+  @@index([villageId])
+  @@map("village_names")
 }
 
 model Source {
@@ -48,6 +119,9 @@ model Source {
   type            String
   createdBy       BigInt   @map("created_by")
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  creator        AppUser  @relation("SourceCreatedBy", fields: [createdBy], references: [id])
+  villages       Village[]
+  villageNames   VillageName[]
   @@map("sources")
 }
 
