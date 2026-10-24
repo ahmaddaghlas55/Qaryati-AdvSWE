@@ -119,9 +119,13 @@ model Source {
   type            String
   createdBy       BigInt   @map("created_by")
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
   creator        AppUser  @relation("SourceCreatedBy", fields: [createdBy], references: [id])
   villages       Village[]
   villageNames   VillageName[]
+
+  @@index([type])
   @@map("sources")
 }
 
