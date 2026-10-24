@@ -8,6 +8,7 @@ import { notFoundHandler } from './shared/http/not-found-handler';
 import { requestIdMiddleware } from './shared/http/request-id.middleware';
 import { createGovernorateRouter } from './modules/governorates/governorates.routes';
 import { createVillageRouter } from './modules/villages/villages.routes';
+import { createSourcesRouter } from './modules/sources/sources.routes';
 
 export function createApp() {
   const app = express();
@@ -25,9 +26,10 @@ export function createApp() {
       next(error);
     }
   });
-  
+
   app.use('/api/v1/governorates', createGovernorateRouter(container.governorateController));
   app.use('/api/v1/villages', createVillageRouter(container.villageController));
+  app.use('/api/v1/sources', createSourcesRouter(container.sourcesController));
 
   // Error handling middleware should be the last middleware added
   app.use(notFoundHandler);
