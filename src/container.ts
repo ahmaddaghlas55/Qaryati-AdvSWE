@@ -6,13 +6,15 @@ import { SourcesController } from './modules/sources/sources.controller';
 import { PrismaSourcesRepository } from './modules/sources/sources.prisma-repository';
 import { SourcesService } from './modules/sources/sources.service';
 import { VillageController } from './modules/villages/villages.controller';
+import { VillageNamesController } from './modules/villages/villages.names.controller';
+import { PrismaVillageNamesRepository } from './modules/villages/villages.names.prisma-repository';
+import { VillageNamesService } from './modules/villages/villages.names.service';
 import { PrismaVillageRepository } from './modules/villages/villages.prisma-repository';
 import { VillageService } from './modules/villages/villages.service';
 import type { Cache } from './shared/cache/cache';
 import { LruCache } from './shared/cache/lru-cache';
 import { prisma } from './shared/db/prisma';
 import { UnitOfWork } from './shared/db/unit-of-work';
-
 export interface Container {
   config: Config;
   prisma: typeof prisma;
@@ -20,6 +22,7 @@ export interface Container {
   cache: Cache;
   governorateController: GovernorateController; // NEW
   villageController: VillageController;
+  villageNamesController: VillageNamesController;
   sourcesController: SourcesController;
 }
 
@@ -35,6 +38,10 @@ export function createContainer(): Container {
   const villageService = new VillageService(villageRepository);
   const villageController = new VillageController(villageService);
 
+  const villageNamesRepository = new PrismaVillageNamesRepository(prisma);
+  const villageNamesService = new VillageNamesService(villageNamesRepository);
+  const villageNamesController = new VillageNamesController(villageNamesService);
+
   const sourcesRepository = new PrismaSourcesRepository(prisma);
   const sourcesService = new SourcesService(sourcesRepository);
   const sourcesController = new SourcesController(sourcesService);
@@ -46,6 +53,7 @@ export function createContainer(): Container {
     cache,
     governorateController, // NEW
     villageController,
+    villageNamesController,
     sourcesController,
   };
 }
