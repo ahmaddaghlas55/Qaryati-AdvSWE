@@ -28,7 +28,7 @@ export function createApp() {
   });
 
   app.use('/api/v1/governorates', createGovernorateRouter(container.governorateController));
-  app.use('/api/v1/villages', createVillageRouter(container.villageController));
+  app.use('/api/v1/villages', createVillageRouter(container.villageController, container.villageNamesController));
   app.use('/api/v1/sources', createSourcesRouter(container.sourcesController));
 
   // Error handling middleware should be the last middleware added
