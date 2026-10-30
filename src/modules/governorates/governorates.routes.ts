@@ -5,5 +5,7 @@ import { GovernorateController } from './governorates.controller';
 export function createGovernorateRouter(controller: GovernorateController): Router {
   const router = Router();
   router.get('/', controller.list);
+  router.get('/:slug/villages', controller.listVillages);
+  router.get('/:slug', controller.getBySlug);
   return router;
 }
