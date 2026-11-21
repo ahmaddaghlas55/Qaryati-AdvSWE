@@ -21,7 +21,7 @@ export class PrismaSourcesRepository implements SourcesRepository {
       }),
     };
 
-    const [sources, totalItems] = await this.prisma.$transaction([
+    const [sources, totalItems] = await Promise.all([
       this.prisma.source.findMany({
         where,
         select: {
