@@ -2,9 +2,7 @@
 
 Advanced Software Engineering, Fall 2026. Team of 4. Stack: Node.js + TypeScript + Express + PostgreSQL + Docker.
 
-This file is the working blueprint: what we are building, the decisions already made, the ones still open, and what each person does first. Treat it as a draft. When the team changes a decision, update this file **and** write an ADR (section 15).
-
-> **Deadline:** the spec says `01/12/2026`. This guide assumes **1 December 2026** (dd/mm). Confirm with the instructor.
+> **Deadline:** **1 December 2026**
 
 ---
 
