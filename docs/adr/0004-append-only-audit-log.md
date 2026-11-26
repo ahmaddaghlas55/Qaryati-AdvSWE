@@ -8,6 +8,8 @@ Audit history is an accountability record and must not be silently changed by ap
 
 The audit log is append-only. PostgreSQL triggers reject update, delete, and truncate operations with the error `audit_log is append-only`; writes occur in the same transaction as the audited change.
 
+Every business change that is audited is written in the same database transaction as its audit entry. If the audit write fails, the business change is rolled back, so no successful change exists without an audit record.
+
 ## Alternatives considered
 
 Application-only checks are easier to bypass and do not protect against direct database access. Hash chaining is optional future hardening, not a replacement for database enforcement.
