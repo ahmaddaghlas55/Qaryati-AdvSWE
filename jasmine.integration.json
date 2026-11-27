@@ -2,5 +2,6 @@
   "spec_dir": "test/integration",
   "spec_files": ["**/*.spec.ts"],
   "requires": ["ts-node/register"],
+  "loader": "./jasmine-loader.cjs",
   "random": true
 }
