@@ -1,96 +1,358 @@
-# Qaryati: Team Decisions
+# Qaryati — Team Decisions
 
-**Status:** draft for team agreement
-**Deadline:** 1 December 2026
+**Project:** Qaryati  
+**Decision log:** 40 of 40 decisions addressed  
+**Document date:** 26 November 2026  
+**Decision deadline:** Before 1 December 2026  
+**Implementation status:** Not all decisions have been verified in the repository. **Agreed** means a team decision was made; it does **not** mean the feature is implemented.
 
-Each decision needs one owner and a status: **agreed**, **open**, or **deferred**. Decisions that involve a real trade-off have an ADR in `docs/adr/`.
+## 1. Team and ownership
 
-## Stack and environment
+| Member | Nickname | Owned functional areas | Decision deadline |
+|---|---|---|---|
+| Ahmad | dug | Architecture & Configuration | 28 Nov 2026 |
+| Ahmad | dug | API Design | 29 Nov 2026 |
+| Maher | meho | Authentication & Security | 29 Nov 2026 |
+| Hosni | Hos | Database & History | 29 Nov 2026 |
+| Hosni | Hos | External API | 28 Nov 2026 |
+| Mahmood | Mah | Testing & Performance | 30 Nov 2026 |
+| Mahmood | Mah | Delivery & Documentation | 30 Nov 2026 |
 
-| # | Decision | Options / notes | Owner | Status |
-|---|---|---|---|---|
-| 1 | Node version | Rulebook and ci.yml say Node 20; Dockerfile uses Node 22. Choose one and update ci.yml, Dockerfile, and rulebook to match (ADR-0001 says 22). | | open |
-| 2 | Password hashing | bcrypt or argon2 | | open |
-| 3 | Token type and lifetime | JWT access token length; whether a refresh token exists | | open |
-| 4 | Logging library and format | pino or winston; correlation ID per request | | open |
-| 5 | Caching | In-memory LRU only, or add Redis as a container | | open |
-| 6 | Environment config | Which variables exist; validated only in `src/config` | | open |
+Each area owner is accountable for coordinating and checking its decisions, not necessarily performing every implementation task alone. Cross-area decisions require coordination between the listed owners. Deadlines above are **decision/documentation deadlines**, not proof that a feature is complete.
 
-## Architecture and boundaries
+### Status legend
 
-| # | Decision | Options / notes | Owner | Status |
-|---|---|---|---|---|
-| 7 | Architecture style | Layered (per rulebook) or another style. Record the comparison (spec requirement). | | open |
-| 8 | Shared code | What goes in `src/shared/` (errors, logger, auth middleware) vs. modules | | open |
-| 9 | Transaction boundaries | Which multi-step writes must be atomic (e.g. village + first name) | | open |
-| 10 | DTO and mapping | Whether responses are mapped in the service or the controller | | open |
+- **Agreed:** Policy or design choice confirmed by the team.
+- **Agreed — review needed:** Decision confirmed; the existing code or course requirement must still be checked.
+- **Implementation to verify:** No assertion of working implementation has been made, even when relevant code or configuration exists.
 
-## Roles and permissions
+## 2. Decision register
 
-| # | Decision | Options / notes | Owner | Status |
-|---|---|---|---|---|
-| 11 | Roles | e.g. public, contributor, verifier, admin | | open |
-| 12 | Permissions per action | Who can create, edit, verify, and remove each data type (villages, names, population, sources, events) | | open |
-| 13 | Verification flow | Contributor proposals stay `proposed` until a verifier approves | | open |
-| 14 | Removal rule | Soft delete only; who can restore | | open |
+### A. Technology stack and configuration (#1–6)
 
-## Data and history
+#### #1 — Node.js version
+- **Decision:** Use **Node.js 22**; preserve the existing Dockerfile version.
+- **Rationale:** Match the currently selected runtime and avoid unnecessary version changes.
+- **Owner / deadline:** Ahmad (dug) — 28 Nov 2026.
+- **Status:** **Agreed — review needed.** The team's rulebook previously mentioned Node.js 20; verify or update that documentation consistently and ensure the course imposes no conflicting requirement.
 
-| # | Decision | Options / notes | Owner | Status |
-|---|---|---|---|---|
-| 15 | Public visibility | History shows `verified` and `superseded` names only (agreed by Mah). Confirm and write ADR. | | agreed (confirm) |
-| 16 | Population validation | What is invalid: negative value, future year, duplicate year per village | | open |
-| 17 | Conflicting data | Keep both records with a status; never overwrite silently | | open |
-| 18 | Audit log | Actor, action, entity, before/after values, time; append-only | | open |
-| 19 | Governorate `updatedAt` | Add with a migration, or document as omitted | | open |
-| 20 | Indexes | Which columns get indexes (village slug, governorate id, population year), chosen before k6 | | open |
+#### #2 — Password hashing
+- **Decision:** Use **bcrypt** for password hashing.
+- **Rationale:** Maintain a standard one-way password-hashing approach.
+- **Owner / deadline:** Maher (meho) — 29 Nov 2026.
+- **Status:** **Agreed; implementation to verify.**
 
-## External API
+#### #3 — Tokens and lifetimes
+- **Decision:** JWT access tokens expire after **15 minutes**; refresh tokens after **7 days**.
+- **Rationale:** Limit access-token exposure while preserving a usable login session.
+- **Owner / deadline:** Maher (meho) — 29 Nov 2026.
+- **Status:** **Agreed — review needed.** Ensure actual issuance, expiration and refresh-token handling match the configuration.
 
-| # | Decision | Options / notes | Owner | Status |
-|---|---|---|---|---|
-| 21 | Provider | Which geocoding service, and how it is configured | | open |
-| 22 | Timeout | Timeout value, and behaviour after timeout (endpoint still returns without geo data) | | open |
-| 23 | Retry policy | Retry or not, and why. Suggested: no retry on user-facing reads. | | open |
-| 24 | Rate limit | Provider limit, and how the app stays under it | | open |
-| 25 | Cache | What is cached, for how long, and what must not be cached | | open |
+#### #4 — Logging
+- **Decision:** Use **Pino**, structured JSON logs and correlation/request IDs.
+- **Rationale:** Enable traceable diagnostics across requests without adding a separate logging stack.
+- **Owner / deadline:** Ahmad (dug) — 28 Nov 2026.
+- **Status:** **Agreed; implementation to verify.**
 
-## Security
+#### #5 — Caching strategy
+- **Decision:** Keep **in-memory LRU caching**; do not introduce Redis for the agreed scope.
+- **Rationale:** The current project does not require the additional infrastructure of a distributed cache.
+- **Owner / deadline:** Ahmad (dug) for general stack choice; coordinate with Hosni (Hos) for geocoding cache — 28 Nov 2026.
+- **Status:** **Agreed — review needed.** See #25 for the distinct geocoding TTL and ADR-003.
 
-| # | Decision | Options / notes | Owner | Status |
-|---|---|---|---|---|
-| 26 | CORS | Allowed origins | | open |
-| 27 | Rate limiting | Limits per IP; stricter limits on login | | open |
-| 28 | Secret handling | Which secrets exist; `.env` locally, never committed | | open |
+#### #6 — Environment configuration
+- **Decision:** Retain the existing **`.env`** configuration and centralized **Zod `envSchema` validation in `src/config/`**. Preserve current variables; no unnecessary refactoring.
+- **Rationale:** An existing typed Zod schema already lists required variables and checks many values.
+- **Owner / deadline:** Ahmad (dug) — 28 Nov 2026.
+- **Status:** **Agreed — review needed.** Confirm `envSchema.parse(process.env)` or equivalent actually runs at application startup. Only consider small correctness fixes if needed.
 
-## API design
+### B. Architecture and data access (#7–10)
 
-| # | Decision | Options / notes | Owner | Status |
-|---|---|---|---|---|
-| 29 | Versioning | `/api/v1/` for all routes (spec requirement) | | agreed |
-| 30 | Error format | `code`, `message`, `details`, `requestId`, `timestamp` (already in use) | | agreed |
-| 31 | Pagination defaults | page 1, pageSize 20, max 100 (already built) | | agreed |
-| 32 | Default sort orders | Per list endpoint | | open |
-| 33 | API documentation | Spec requires API-Dog or an equivalent agreed tool. Postman + OpenAPI is proposed (ADR-0012), not agreed. Confirm with instructor/team. | | open |
+#### #7 — System architecture
+- **Decision:** Maintain the existing **monolithic layered architecture**.
+- **Rationale:** Fits the course project and protects the working codebase from an unnecessary architectural rewrite.
+- **Owner / deadline:** Ahmad (dug) — 28 Nov 2026.
+- **Status:** **Agreed — review needed.** Explain the choice and alternatives in ADR-001; do not refactor solely to change labels.
 
-## Testing and performance
+#### #8 — Shared code placement
+- **Decision:** Keep reusable infrastructure in **`src/shared/`** and feature-specific logic inside its feature modules.
+- **Rationale:** Preserve current boundaries and minimize duplication.
+- **Owner / deadline:** Ahmad (dug) — 28 Nov 2026.
+- **Status:** **Agreed.** In the reviewed structure, `app.ts`, `container.ts`, and `server.ts` live directly under `src/`, not `src/shared/`.
 
-| # | Decision | Options / notes | Owner | Status |
-|---|---|---|---|---|
-| 34 | Test split | Unit (fake repository) vs. integration (real database); where integration tests live | | open |
-| 35 | Performance tests | k6, 50 VUs for 5 minutes. Two required scenarios: read-heavy (village list/detail/search) and authenticated write (create/update). Record p95, throughput, error rate, one measured bottleneck, and before/after. | | open |
+#### #9 — Database transactions
+- **Decision:** Preserve the Prisma **`UnitOfWork`** using `$transaction`; require an atomic transaction for logically linked multi-step writes.
+- **Rationale:** Related state changes should either all succeed or all fail.
+- **Owner / deadline:** Hosni (Hos) — 29 Nov 2026.
+- **Status:** **Agreed — review needed.** The `UnitOfWork.run()` wrapper has been seen; inspect actual use in write paths.
 
-## Delivery and documentation
+#### #10 — DTO mapping and response shaping
+- **Decision:** Continue **service-level response shaping**, preserving the current controller/service separation.
+- **Rationale:** Existing services already assemble API response structures; avoid duplicating transformation layers.
+- **Owner / deadline:** Ahmad (dug) — 28 Nov 2026.
+- **Status:** **Agreed — review needed.** Village list service shapes pagination metadata, but repository field selection and all response exposure should be checked.
 
-| # | Decision | Options / notes | Owner | Status |
-|---|---|---|---|---|
-| 36 | Docker | One command starts the system (docker compose up --build). Local DB host port is 5434 (agreed in team chat). CI does not build the Docker image yet. | | open |
-| 37 | Git workflow | Rulebook: only the reviewer merges; no one merges their own PR. Team must confirm. The ADR PR was merged to main; record who approved and who merged it. | | open |
-| 38 | ADR list | Written in docs/adr/: 0001 to 0006 existing, 0007 to 0012 proposed. See docs/adr/README.md. | | in progress |
-| 39 | README contents | Required sections per spec | | open |
+### C. Roles and moderation (#11–14)
 
-## Ownership
+#### #11 — Roles
+- **Decision:** Support **Public**, **Contributor**, **Verifier**, and **Admin**. Public needs no account.
+- **Rationale:** Separate public reading, contribution, approval and administration.
+- **Owner / deadline:** Maher (meho) — 29 Nov 2026.
+- **Status:** **Agreed — review needed.** Existing `AppUser.role` was a string defaulting to `contributor`; review actual role checks and provision of verifier/admin capabilities.
 
-| # | Decision | Options / notes | Owner | Status |
-|---|---|---|---|---|
-| 40 | Owner per mandatory area | One named person and a deadline per item, before 1 December | | open |
+#### #12 — Permission matrix
+- **Decision:** Apply the following authorization rules, aligned with #13 and #14:
+
+| Action | Public | Contributor | Verifier | Admin |
+|---|:---:|:---:|:---:|:---:|
+| View published records | Yes | Yes | Yes | Yes |
+| Submit proposals | No | Yes | Yes | Yes |
+| Edit own **pending** proposals | No | Yes | Yes | Yes |
+| Approve/reject **other users'** manual-review proposals | No | No | Yes | Yes |
+| Create validated, automatically published Sources | No | Yes | Yes | Yes |
+| Soft-delete records | No | No | Yes | Yes |
+| Restore records | No | No | Yes | Yes |
+| Manage user roles | No | No | No | Yes |
+
+- **Rationale:** Restrict privileged changes, prohibit self-approval, and allow contributors to submit evidence without automatically publishing unverified historical claims.
+- **Owner / deadline:** Maher (meho) — 29 Nov 2026; coordinate with Hosni (Hos) on entity write paths.
+- **Status:** **Agreed; implementation to verify.** Record visibility and permissions must also honor deleted statuses and #15.
+
+#### #13 — Hybrid verification workflow
+- **Decision:** **Manual review** for Villages, Historical Names, Population Records and Historical Events. **Automatic publication after validation** for Sources.
+- **Review rules:** Verifiers cannot approve their own proposals; rejection reason required; approval note optional; rejected proposals retained; revisions submitted separately as new proposals. Auto-publishing Source metadata does **not** approve any historical claims based on that Source.
+- **Rationale:** Preserve review for substantive historical claims while avoiding review overhead for basic source metadata.
+- **Owner / deadline:** Maher (meho), coordinating with Hosni (Hos) — 29 Nov 2026.
+- **Status:** **Agreed; implementation to verify.** Village/VillageName review fields were present in the shared schema. Population and Event models were not present in the schema previously shared, and must not be assumed implemented.
+
+#### #14 — Removal and restoration
+- **Decision:** **Soft deletion only**; both **Verifier and Admin** may remove and restore records.
+- **Rationale:** Preserve historical records and traceability while hiding removed data from normal public views.
+- **Owner / deadline:** Maher (meho), with Hosni (Hos) for persistence — 29 Nov 2026.
+- **Status:** **Agreed; implementation to verify.** This supersedes any earlier admin-only removal proposal.
+
+### D. Data, history and database (#15–20)
+
+#### #15 — Public historical-name visibility
+- **Decision:** Show only names with **`verified` or `superseded`** status, excluding soft-deleted names. Hide proposed and rejected names from public access.
+- **Rationale:** Let the public see authenticated current and former names without surfacing unreviewed claims.
+- **Owner / deadline:** Hosni (Hos) — 29 Nov 2026.
+- **Status:** **Agreed — review needed.** An earlier public village query filtered joined names to `verified`, current and official; historical-name endpoints must implement the agreed visibility independently. Document rationale in ADR-002.
+
+#### #16 — Population validation
+- **Decision:** Reject **negative population**, reject **future years**, and allow multiple records for the same village/year when they represent **different sources**.
+- **Rationale:** Preserve valid source-based alternatives without silently collapsing historical evidence.
+- **Owner / deadline:** Hosni (Hos) — 29 Nov 2026.
+- **Status:** **Agreed; implementation to verify.** Whole-number constraints should be checked against the actual schema/specification; they were not separately confirmed in this decision.
+
+#### #17 — Conflicting historical data
+- **Decision:** Preserve source-backed conflicting records rather than overwriting one another; expose explicit **conflict flags**.
+- **Rationale:** Historical discrepancies should remain auditable and visible to reviewers.
+- **Owner / deadline:** Hosni (Hos) — 29 Nov 2026.
+- **Status:** **Agreed; implementation to verify.**
+
+#### #18 — Audit logging
+- **Decision:** Maintain detailed, append-only audit records including **actor, action, entity, before/after data, time and request ID**; audit entry and business change must commit in the **same Prisma transaction**.
+- **Rationale:** Track who changed what, and avoid successful business writes without an audit trail.
+- **Owner / deadline:** Hosni (Hos) — 29 Nov 2026.
+- **Status:** **Agreed — review needed.** An `AuditLog` model exists in the schema previously shared; transactional writes and append-only enforcement remain unverified.
+
+#### #19 — Governorate timestamps
+- **Decision:** Do **not** add `updatedAt` to `Governorate` solely for consistency; document the omission.
+- **Rationale:** Avoid unnecessary schema migration and fields without a justified use.
+- **Owner / deadline:** Hosni (Hos) — 29 Nov 2026.
+- **Status:** **Agreed.**
+
+#### #20 — Database indexing
+- **Decision:** Keep existing indexes and add further indexes **based on real query patterns and measurements**.
+- **Rationale:** Avoid speculative indexes while supporting commonly filtered and ordered queries.
+- **Owner / deadline:** Hosni (Hos) — 29 Nov 2026.
+- **Status:** **Agreed — review needed.** A possible non-unique `(villageId, year)` Population index is only a future consideration, not an approved migration.
+
+### E. External geocoding service (#21–25)
+
+#### #21 — Geocoding provider
+- **Decision:** Continue with **Nominatim (OpenStreetMap)** for geocoding; honor the public service's usage policy and provide an identifying user agent.
+- **Rationale:** Preserve the existing provider without introducing a paid dependency.
+- **Owner / deadline:** Hosni (Hos) — 28 Nov 2026.
+- **Status:** **Agreed — review needed.** Verify actual configured user agent/contact and compliance with provider restrictions.
+
+#### #22 — Timeout and fallback
+- **Decision:** Set geocoding timeout to **4,000 ms**, and **gracefully return village data without coordinates** if geocoding fails or times out.
+- **Rationale:** Keep core village browsing available when the external service is slow or unreachable.
+- **Owner / deadline:** Hosni (Hos) — 28 Nov 2026.
+- **Status:** **Agreed; implementation to verify.**
+
+#### #23 — Retry policy
+- **Decision:** **No automatic retries** in user-facing requests to public Nominatim; use graceful fallback.
+- **Rationale:** Avoid amplification of provider traffic and user-facing delays.
+- **Owner / deadline:** Hosni (Hos) — 28 Nov 2026.
+- **Status:** **Agreed; implementation to verify.**
+
+#### #24 — Outbound provider rate limit
+- **Decision:** Reuse in-memory LRU with an outbound throttle of at most **1 Nominatim request per second across the running application**. If waiting would exceed the user request's timeout budget, fall back instead.
+- **Rationale:** Respect provider traffic limits without blocking users indefinitely.
+- **Owner / deadline:** Hosni (Hos) — 28 Nov 2026.
+- **Status:** **Agreed — review needed.** Verify behavior at runtime; process-local throttling does not by itself guarantee a global limit across multiple application instances.
+
+#### #25 — Geocoding cache
+- **Decision:** Cache successful geocoding responses for **24 hours**, but do **not** cache no-results, timeouts or errors. Retain in-memory LRU.
+- **Rationale:** Reduce repeat provider calls while avoiding persistence of transient failures.
+- **Owner / deadline:** Hosni (Hos) — 28 Nov 2026.
+- **Status:** **Agreed — review needed.** Existing general `CACHE_TTL_SECONDS=300` is not the agreed 24-hour geocoding TTL; use a separate configuration if necessary without altering unrelated caches.
+
+### F. Application security (#26–28)
+
+#### #26 — CORS
+- **Decision:** Use **environment-specific CORS origin allowlists**, keeping the existing `CORS_ORIGINS` configuration variable.
+- **Rationale:** Allow known frontends while preventing unrestricted cross-origin browser requests.
+- **Owner / deadline:** Maher (meho) — 29 Nov 2026.
+- **Status:** **Agreed — review needed.** Confirm listed origins actually match the frontend origins used in each environment.
+
+#### #27 — Inbound rate limiting
+- **Decision:** Set general API rate limiting to **100 requests/minute/IP** and authentication rate limiting to **10 requests/minute/IP**.
+- **Rationale:** Limit abusive traffic and protect authentication endpoints.
+- **Owner / deadline:** Maher (meho) — 29 Nov 2026.
+- **Status:** **Agreed — review needed.** Relevant environment variables exist; verify middleware, route placement, response behavior and trusted proxy/IP handling.
+
+#### #28 — Secrets handling
+- **Decision:** Keep `.env` local, **never commit real secrets**, provide safe placeholders in `.env.example`, and inject production secrets in deployment.
+- **Rationale:** Avoid leaking database credentials, JWT secrets and admin bootstrap credentials.
+- **Owner / deadline:** Maher (meho), coordinating with Mahmood (Mah) for deployment — 29 Nov 2026.
+- **Status:** **Agreed — review needed.** Inspect `.gitignore`, CI and Docker settings; rotate any secrets ever exposed accidentally.
+
+### G. API behavior and documentation (#29–33)
+
+#### #29 — API versioning
+- **Decision:** Use the **`/api/v1/`** prefix for API routes.
+- **Rationale:** Keep a stable, explicit initial API version.
+- **Owner / deadline:** Ahmad (dug) — 29 Nov 2026.
+- **Status:** **Agreed; implementation to verify across routes.**
+
+#### #30 — Error response format
+- **Decision:** Use the existing five-field API error shape: **`code`, `message`, `details`, `requestId`, `timestamp`**.
+- **Rationale:** Consistent machine-readable errors and diagnostics.
+- **Owner / deadline:** Ahmad (dug) — 29 Nov 2026.
+- **Status:** **Agreed; implementation to verify across endpoints.**
+
+#### #31 — Pagination defaults
+- **Decision:** Default **`page=1`**, **`pageSize=20`**, max **`pageSize=100`**.
+- **Rationale:** Bound response sizes while providing usable defaults.
+- **Owner / deadline:** Ahmad (dug) — 29 Nov 2026.
+- **Status:** **Agreed.** These constraints were seen in `villageListQuerySchema`; verify other paginated endpoints separately.
+
+#### #32 — Default sort orders
+- **Decision:** For village listing, default to **`slug ASC`**. Support `slug ASC/DESC` and `updatedAt ASC/DESC`; when ordering by `updatedAt`, add **`slug ASC`** as a deterministic secondary key for equal timestamps.
+- **Rationale:** Preserve existing API behavior while stabilizing pagination when timestamps tie.
+- **Owner / deadline:** Ahmad (dug) — 29 Nov 2026.
+- **Status:** **Agreed — minimal change pending.** Existing query schema and repository sorting were reviewed; apply only the tie-breaker in the two timestamp branches, and review defaults for other collections independently.
+
+#### #33 — API documentation
+- **Decision:** Maintain **Postman** as the team's API workflow and deliver API documentation at **`docs/api/openapi.yaml`** as planned.
+- **Rationale:** Make endpoints easy to exercise and provide shareable API documentation.
+- **Owner / deadline:** Ahmad (dug) — 29 Nov 2026, with Mahmood (Mah) for documentation delivery.
+- **Status:** **Agreed — review needed.** A Postman collection export is not automatically a valid OpenAPI YAML file; ensure the required output is actually generated and validated.
+
+### H. Testing and performance (#34–35)
+
+#### #34 — Test strategy
+- **Decision:** Use **unit tests with fake repositories** and **integration tests with a real isolated test database**.
+- **Rationale:** Keep business-logic tests fast while verifying realistic persistence behavior.
+- **Owner / deadline:** Mahmood (Mah) — 30 Nov 2026.
+- **Status:** **Agreed — review needed.** Preserve any current test setup; inspect actual coverage and database isolation.
+
+#### #35 — Performance tests
+- **Decision:** Use **k6**, with **50 virtual users for 5 minutes**, target **p95 response time < 500 ms** and **HTTP failure rate < 1%** on public village listing/detail/filter scenarios. Capture a baseline, optimize one measured bottleneck, then compare results.
+- **Rationale:** Establish measurable performance targets and evidence of improvement.
+- **Owner / deadline:** Mahmood (Mah) — 30 Nov 2026.
+- **Status:** **Agreed; execution and measured results pending.** Avoid generating live public Nominatim traffic during load tests.
+
+### I. Delivery and documentation (#36–39)
+
+#### #36 — Docker delivery
+- **Decision:** Keep **Docker Compose one-command startup** via `docker compose up --build`; build the Docker image automatically in CI.
+- **Rationale:** Provide a reproducible way to start the application and verify buildability.
+- **Owner / deadline:** Mahmood (Mah) — 30 Nov 2026.
+- **Status:** **Agreed — review needed.** Confirm local Compose startup and CI pipeline behavior.
+
+#### #37 — Git workflow
+- **Decision:** Keep the **existing course rulebook Git workflow**; under the team's chosen practice, **any team member may merge**.
+- **Rationale:** Avoid imposing a new branching/review model on the current team.
+- **Owner / deadline:** Mahmood (Mah) — 30 Nov 2026.
+- **Status:** **Agreed — review needed.** Verify the exact rulebook actually permits the chosen merge practice; adjust only if required by the course.
+
+#### #38 — Architecture Decision Records (ADRs)
+- **Decision:** Write three ADR files in **`docs/adr/`**:
+  1. **ADR-001 — Monolithic Layered Architecture** (#7)
+  2. **ADR-002 — Public Historical Name Visibility** (#15)
+  3. **ADR-003 — In-Memory LRU Caching** (#5)
+- **Rationale:** Document meaningful technical tradeoffs and their consequences.
+- **Owner / deadline:** Mahmood (Mah), with contributions from the affected owners — 30 Nov 2026.
+- **Status:** **Agreed; ADR files still need to be created/verified.** These titles and filenames are organizational suggestions; the required ADR topics and directory are agreed.
+
+#### #39 — README contents
+- **Decision:** **Preserve the existing README** and add **only missing sections required by the course specification**. Include links to all three ADRs and instructions for **unit, integration and k6 performance tests**.
+- **Rationale:** Meet documentation requirements while retaining existing work.
+- **Owner / deadline:** Mahmood (Mah) — 30 Nov 2026.
+- **Status:** **Agreed — review needed.** Compare README against the actual course specification before editing; do not invent mandatory headings.
+
+### J. Team accountability (#40)
+
+#### #40 — Named owner and deadline
+- **Decision:** Assign a named owner and deadline to each mandatory work area, as shown in Section 1. All agreed deadlines fall on **28–30 November 2026**, before 1 December.
+- **Rationale:** Ensure clear responsibility and a concrete deadline for every part of the decision log.
+- **Owner / deadline:** All four team members — by 30 Nov 2026.
+- **Status:** **Agreed.** Owners are assigned by functional area; a more granular per-item task tracker may be maintained if the course requires it.
+
+## 3. Implementation verification checklist
+
+**Important:** Checkboxes below are **not** evidence of failure or missing implementation; they indicate work not yet confirmed from the code and test results reviewed together.
+
+### Ahmad (dug) — Architecture & Configuration / API Design
+- [ ] Confirm centralized `envSchema` is parsed on startup (#6).
+- [ ] Ensure runtime/architecture documentation matches chosen Node.js 22 and layered monolith (#1, #7).
+- [ ] Check repository field selection and service-level response shaping (#10).
+- [ ] Apply `slug ASC` as the secondary sort in both `updatedAt` order branches; preserve existing defaults (#32).
+- [ ] Review other collection endpoints' sort defaults (#32).
+- [ ] Confirm Postman workflow and produce/validate actual `docs/api/openapi.yaml` (#33).
+
+### Maher (meho) — Authentication & Security
+- [ ] Verify bcrypt and JWT access/refresh-token behavior (#2–3).
+- [ ] Check all four roles and permission enforcement, including ownership and no self-approval (#11–13).
+- [ ] Check automatic Sources vs manually reviewed records, rejection notes and proposal retention (#13).
+- [ ] Verify soft-delete/restore authorization for Verifier **and** Admin (#14).
+- [ ] Verify origin allowlists and general/auth rate limiting (#26–27).
+- [ ] Check `.gitignore`, `.env.example`, deployment secrets and bootstrap safety (#28).
+
+### Hosni (Hos) — Database & History / External API
+- [ ] Verify transactional writes and audit logging in the same transaction (#9, #18).
+- [ ] Check historical-name public visibility and soft-deleted filtering (#15).
+- [ ] Verify population validation, source-specific duplicates and conflict flags when implemented (#16–17).
+- [ ] Review indexes for actual queries (#20).
+- [ ] Verify Nominatim identifying user agent, provider policy and 4,000 ms graceful timeout (#21–22).
+- [ ] Confirm no automatic retries and the agreed per-application outbound 1 request/second throttle (#23–24).
+- [ ] Configure/verify 24-hour successful geocoding cache, excluding errors and misses (#25).
+
+### Mahmood (Mah) — Testing & Performance / Delivery & Documentation
+- [ ] Review unit tests using fake repositories and isolated-database integration tests (#34).
+- [ ] Run k6 baseline and record actual p95/error metrics, then compare after measured optimization (#35).
+- [ ] Test `docker compose up --build` and confirm automated CI image build (#36).
+- [ ] Verify the Git merge policy against the actual course rulebook (#37).
+- [ ] Create ADR-001, ADR-002 and ADR-003 under `docs/adr/` (#38).
+- [ ] Add only missing required README material, ADR links and testing instructions (#39).
+
+## 4. Recommended next steps
+
+1. **Commit this decision log as documentation** after team review; it does not modify runtime behavior.
+2. **Each owner checks existing work first** and labels tasks as already implemented, missing or needing a narrow fix.
+3. **Apply minimal targeted changes**, starting with the known #32 timestamp-sort tie-breaker.
+4. **Verify security, persistence and external service behavior**, particularly the newly finalized #12–13 policy.
+5. **Create ADRs and complete README**, comparing all deliverables with the course specification.
+6. **Run tests and record evidence** before marking implementation checks complete.
+
+## 5. Notes and constraints
+
+- Preserve working application code and existing folder structure; no broad rewrite is authorized by this document.
+- The supplied schema excerpts confirm certain models and code fragments, **not** the entire application's functionality.
+- This is the team's **decisions document**, not an implementation completion certificate.
+- If the course rulebook conflicts with an agreed approach, record the discrepancy and resolve it explicitly rather than silently changing code or inventing requirements.
