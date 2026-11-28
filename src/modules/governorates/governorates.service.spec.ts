@@ -8,6 +8,7 @@ import {
   governorateVillagesQuerySchema,
 } from './governorates.schemas';
 import { GovernorateService } from './governorates.service';
+import { buildGovernorateVillageOrderBy } from './governorates.prisma-repository';
 
 describe('GovernorateService', () => {
   it('returns all governorates from the repository', async () => {
@@ -164,5 +165,22 @@ describe('GovernorateService', () => {
     expect(governorateVillagesQuerySchema.safeParse({ pageSize: 101 }).success).toBeFalse();
     expect(governorateVillagesQuerySchema.safeParse({ page: 0 }).success).toBeFalse();
     expect(governorateVillagesQuerySchema.safeParse({ sort: 'name' }).success).toBeFalse();
+  });
+});
+
+describe('governorate village public sorting', () => {
+  const sqlText = (
+    orderBy: ReturnType<typeof buildGovernorateVillageOrderBy>,
+  ): string => orderBy.strings.join('');
+
+  it('preserves slug sorting and adds a slug tie-breaker for updated timestamps', () => {
+    expect(sqlText(buildGovernorateVillageOrderBy('slug', 'asc')))
+      .toBe('v.slug ASC');
+    expect(sqlText(buildGovernorateVillageOrderBy('slug', 'desc')))
+      .toBe('v.slug DESC');
+    expect(sqlText(buildGovernorateVillageOrderBy('updatedAt', 'asc')))
+      .toBe('v.updated_at ASC, v.slug ASC');
+    expect(sqlText(buildGovernorateVillageOrderBy('updatedAt', 'desc')))
+      .toBe('v.updated_at DESC, v.slug ASC');
   });
 });

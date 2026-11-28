@@ -25,6 +25,21 @@ interface CountRow {
   total_items: bigint;
 }
 
+export function buildVillageOrderBy(
+  sort: 'slug' | 'updatedAt',
+  order: 'asc' | 'desc',
+): Prisma.Sql {
+  if (sort === 'updatedAt') {
+    return order === 'asc'
+      ? Prisma.sql`v.updated_at ASC, v.slug ASC`
+      : Prisma.sql`v.updated_at DESC, v.slug ASC`;
+  }
+
+  return order === 'asc'
+    ? Prisma.sql`v.slug ASC`
+    : Prisma.sql`v.slug DESC`;
+}
+
 export class PrismaVillageRepository implements VillageRepository {
   constructor(private readonly prisma: PrismaClient) {}
 
@@ -35,14 +50,7 @@ export class PrismaVillageRepository implements VillageRepository {
     const governorateFilter = query.governorateSlug
       ? Prisma.sql`AND g.slug = ${query.governorateSlug}`
       : Prisma.empty;
-    const orderBy =
-      query.sort === 'updatedAt'
-        ? query.order === 'asc'
-          ? Prisma.sql`v.updated_at ASC`
-          : Prisma.sql`v.updated_at DESC`
-        : query.order === 'asc'
-          ? Prisma.sql`v.slug ASC`
-          : Prisma.sql`v.slug DESC`;
+    const orderBy = buildVillageOrderBy(query.sort, query.order);
 
     const [countRows, pageRows] = await this.prisma.$transaction([
       this.prisma.$queryRaw<CountRow[]>(Prisma.sql`

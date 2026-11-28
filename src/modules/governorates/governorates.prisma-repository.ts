@@ -20,6 +20,21 @@ interface CountRow {
   total_items: bigint;
 }
 
+export function buildGovernorateVillageOrderBy(
+  sort: 'slug' | 'updatedAt',
+  order: 'asc' | 'desc',
+): Prisma.Sql {
+  if (sort === 'updatedAt') {
+    return order === 'asc'
+      ? Prisma.sql`v.updated_at ASC, v.slug ASC`
+      : Prisma.sql`v.updated_at DESC, v.slug ASC`;
+  }
+
+  return order === 'asc'
+    ? Prisma.sql`v.slug ASC`
+    : Prisma.sql`v.slug DESC`;
+}
+
 export class PrismaGovernorateRepository implements GovernorateRepository {
   constructor(private readonly prisma: PrismaClient) {}
 
@@ -50,14 +65,7 @@ export class PrismaGovernorateRepository implements GovernorateRepository {
       return null;
     }
 
-    const orderBy =
-      args.sort === 'updatedAt'
-        ? args.order === 'asc'
-          ? Prisma.sql`v.updated_at ASC`
-          : Prisma.sql`v.updated_at DESC`
-        : args.order === 'asc'
-          ? Prisma.sql`v.slug ASC`
-          : Prisma.sql`v.slug DESC`;
+    const orderBy = buildGovernorateVillageOrderBy(args.sort, args.order);
 
     const [countRows, pageRows] = await Promise.all([
       this.prisma.$queryRaw<CountRow[]>(Prisma.sql`
