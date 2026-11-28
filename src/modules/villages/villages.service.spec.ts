@@ -5,6 +5,7 @@ import {
 } from './villages.repository';
 import { villageListQuerySchema, villageParamsSchema } from './villages.schemas';
 import { PUBLIC_VILLAGE_STATUS, VillageService } from './villages.service';
+import { buildVillageOrderBy } from './villages.prisma-repository';
 
 const village: VillageSummary = {
   slug: 'fake-village',
@@ -114,5 +115,22 @@ describe('village schemas', () => {
 
   it('rejects a bad slug', () => {
     expect(villageParamsSchema.safeParse({ slug: 'Bad Slug' }).success).toBeFalse();
+  });
+});
+
+describe('village public sorting', () => {
+  const sqlText = (orderBy: ReturnType<typeof buildVillageOrderBy>): string =>
+    orderBy.strings.join('');
+
+  it('uses slug ascending by default and supports slug descending', () => {
+    expect(sqlText(buildVillageOrderBy('slug', 'asc'))).toBe('v.slug ASC');
+    expect(sqlText(buildVillageOrderBy('slug', 'desc'))).toBe('v.slug DESC');
+  });
+
+  it('adds slug ascending as a tie-breaker for equal updated timestamps', () => {
+    expect(sqlText(buildVillageOrderBy('updatedAt', 'asc')))
+      .toBe('v.updated_at ASC, v.slug ASC');
+    expect(sqlText(buildVillageOrderBy('updatedAt', 'desc')))
+      .toBe('v.updated_at DESC, v.slug ASC');
   });
 });

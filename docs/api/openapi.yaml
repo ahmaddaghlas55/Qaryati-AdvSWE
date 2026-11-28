@@ -1,0 +1,497 @@
+openapi: 3.0.3
+info:
+  title: Qaryati Public API
+  version: '1.0.0'
+  description: >
+    Current public read API. This specification excludes authentication,
+    write, review, and future population or event routes.
+servers:
+  - url: http://localhost:3000
+
+paths:
+  /health:
+    get:
+      summary: Process liveness
+      responses:
+        '200':
+          description: Process is alive
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: Alive
+  /ready:
+    get:
+      summary: Database readiness
+      responses:
+        '200':
+          description: Database is reachable
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ready
+        '500':
+          description: Unexpected readiness failure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/governorates:
+    get:
+      summary: List governorates
+      responses:
+        '200':
+          description: Governorate list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Governorate'
+  /api/v1/governorates/{slug}:
+    get:
+      summary: Get governorate
+      parameters:
+        - $ref: '#/components/parameters/Slug'
+      responses:
+        '200':
+          description: Governorate found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Governorate'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/governorates/{slug}/villages:
+    get:
+      summary: List public villages in a governorate
+      parameters:
+        - $ref: '#/components/parameters/Slug'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/Sort'
+        - $ref: '#/components/parameters/Order'
+      responses:
+        '200':
+          description: Public village page; an existing governorate may have an empty page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GovernorateVillagePage'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/villages:
+    get:
+      summary: List public villages
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: governorate
+          in: query
+          required: false
+          schema:
+            type: string
+            pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$'
+            maxLength: 100
+        - $ref: '#/components/parameters/Sort'
+        - $ref: '#/components/parameters/Order'
+      responses:
+        '200':
+          description: Public village page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VillagePage'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+  /api/v1/villages/{slug}:
+    get:
+      summary: Get public village detail
+      parameters:
+        - $ref: '#/components/parameters/Slug'
+      responses:
+        '200':
+          description: Public village found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/VillageDetail'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/villages/{slug}/names:
+    get:
+      summary: Get current verified village names
+      parameters:
+        - $ref: '#/components/parameters/Slug'
+      responses:
+        '200':
+          description: Current names, or an empty list for a public village without names
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/VillageName'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/villages/{slug}/names/history:
+    get:
+      summary: Get public verified and superseded village name history
+      parameters:
+        - $ref: '#/components/parameters/Slug'
+      responses:
+        '200':
+          description: Public name history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/VillageName'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/sources:
+    get:
+      summary: List sources
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 50
+        - name: publicationYear
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1800
+            maximum: 2026
+      responses:
+        '200':
+          description: Source page sorted by title ascending, then ID ascending
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SourcePage'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+  /api/v1/sources/{id}:
+    get:
+      summary: Get source detail
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Source found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/SourceDetail'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  parameters:
+    Slug:
+      name: slug
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$'
+        maxLength: 100
+    Page:
+      name: page
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    PageSize:
+      name: pageSize
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    Sort:
+      name: sort
+      in: query
+      required: false
+      schema:
+        type: string
+        enum: [slug, updatedAt]
+        default: slug
+    Order:
+      name: order
+      in: query
+      required: false
+      schema:
+        type: string
+        enum: [asc, desc]
+        default: asc
+  responses:
+    ValidationError:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    Governorate:
+      type: object
+      required: [slug, nameAr, nameEn]
+      properties:
+        slug:
+          type: string
+        nameAr:
+          type: string
+        nameEn:
+          type: string
+    VillageSummary:
+      type: object
+      required: [slug, name, governorate, municipality, updatedAt]
+      properties:
+        slug:
+          type: string
+        name:
+          type: object
+          properties:
+            ar:
+              type: string
+              nullable: true
+            en:
+              type: string
+              nullable: true
+        governorate:
+          type: object
+          required: [slug, nameAr, nameEn]
+          properties:
+            slug:
+              type: string
+            nameAr:
+              type: string
+            nameEn:
+              type: string
+        municipality:
+          type: string
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+    GovernorateVillageSummary:
+      type: object
+      required: [slug, name, municipality, updatedAt]
+      properties:
+        slug:
+          type: string
+        name:
+          type: object
+          properties:
+            ar:
+              type: string
+              nullable: true
+            en:
+              type: string
+              nullable: true
+        municipality:
+          type: string
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+    VillageDetail:
+      allOf:
+        - $ref: '#/components/schemas/VillageSummary'
+        - type: object
+          required: [overview, elevationM, areaKm2]
+          properties:
+            overview:
+              type: string
+              nullable: true
+            elevationM:
+              type: number
+              nullable: true
+            areaKm2:
+              type: number
+              nullable: true
+    VillageName:
+      type: object
+      required:
+        [
+          id,
+          language,
+          type,
+          value,
+          isCurrent,
+          validFrom,
+          validTo,
+          meaningOrOrigin,
+        ]
+      properties:
+        id:
+          type: integer
+        language:
+          type: string
+        type:
+          type: string
+        value:
+          type: string
+        isCurrent:
+          type: boolean
+        validFrom:
+          type: string
+          nullable: true
+        validTo:
+          type: string
+          nullable: true
+        meaningOrOrigin:
+          type: string
+          nullable: true
+    PaginationMeta:
+      type: object
+      required: [page, pageSize, totalItems, totalPages]
+      properties:
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        totalItems:
+          type: integer
+        totalPages:
+          type: integer
+    VillagePage:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/VillageSummary'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+    GovernorateVillagePage:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/GovernorateVillageSummary'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+    SourceSummary:
+      type: object
+      required: [id, title, type, publicationYear, author, updatedAt]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        type:
+          type: string
+        publicationYear:
+          type: integer
+          nullable: true
+        author:
+          type: string
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+    SourceDetail:
+      allOf:
+        - $ref: '#/components/schemas/SourceSummary'
+        - type: object
+          required: [publisher, url]
+          properties:
+            publisher:
+              type: string
+              nullable: true
+            url:
+              type: string
+              nullable: true
+    SourcePage:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/SourceSummary'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message, details, requestId, timestamp]
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: array
+              items: {}
+            requestId:
+              type: string
+            timestamp:
+              type: string
+              format: date-time
